@@ -47,8 +47,8 @@ public class Challenge3 {
     }
   }
 
-  // Evaluates how probable a given is to be a valid english text. Measures both
-  // letter frequency and also word length.
+  // Evaluates how probable that a given string is a valid english text.
+  // Measures both letter frequency and word length.
   static double evaluator(String s) {
 
     return 0;
