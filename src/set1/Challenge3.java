@@ -21,10 +21,7 @@ public class Challenge3 {
     String encodedString = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     mtpDecoder decoder = new mtpDecoder();
     decoder.decodeHex(encodedString, 1);
-    String teste = new String( decoder.singleKeyXOR("teste".getBytes(), new byte[] {7}));
-    System.out.println(teste);
-    String teste2 = new String( decoder.singleKeyXOR(teste.getBytes(), new byte[] {7}));
-    System.out.println(teste2);
+
   }
 
 }
@@ -70,14 +67,16 @@ class mtpDecoder {
   Letter[] freqList(String s) {
     Letter[] list = Arrays.copyOf(emptyCharsFrequencies, emptyCharsFrequencies.length);
     int position = 0;
-    for (Character c : s.toCharArray()) {
+    int totalChar = 0;
+    for (Character c : s.toLowerCase().toCharArray()) {
       position = chars.indexOf(c);
-      if(position>0) {
+      if (position >= 0) {
         list[position].count();
+        totalChar++;
       }
     }
     for (Letter letter : list) {
-      letter.frequency = letter.counter / ((double) s.length()) * 100;
+      letter.frequency = letter.counter / ((double) totalChar) * 100;
     }
     return list;
   }
@@ -132,7 +131,7 @@ class mtpDecoder {
     int wordCount = 0;
     int wordLen = 0;
     double lenSum = 0;
-    String[] words = s.split("\u0020");
+    String[] words = s.split("[\\s\u00A0]+");
 
     wordCount = words.length;
     if (wordCount == 0) {
@@ -146,15 +145,16 @@ class mtpDecoder {
   }
 
   // Evaluates how probable that a given string is a valid english text.
-  // Ratings range from 0 (least likely) to 10 (most likely)
+  // Ratings range from 0 (least likely) to 100 (most likely)
   // Measures both letter frequency and word length.
   double evaluator(String s) {
     final double stdWrdLen = 5.1;
     Letter[] frequencies = freqList(s);
-    double rating = 10, avgLen = 0;
+    double rating = 100, avgLen = 0;
     avgLen = avgWordLen(s);
     for (int ix = 0; ix < frequencies.length; ix++) {
-      rating -= Math.abs(frequencies[ix].frequency - stdCharsFrequencies[ix].frequency);
+      rating -= (Math.abs(frequencies[ix].frequency - stdCharsFrequencies[ix].frequency)
+              / stdCharsFrequencies[ix].frequency) * 100 / stdCharsFrequencies.length;
     }
     rating *= (1 - Math.abs(stdWrdLen - avgLen) / stdWrdLen);
     return rating;
@@ -164,19 +164,27 @@ class mtpDecoder {
     ArrayList<Integer> evaluatedKeys = new ArrayList<>();
     ArrayList<Double> ratings = new ArrayList<>();
     double grade = 0;
-    int keyRange = (int) Math.pow(8, keyLen);
-    String strKey, xordString;
+    int keyRange = (int) Math.pow(2, 8 * keyLen);
+    String xordString;
     byte[] message = hexStringToByteArray(encodedString);
     byte[] key = new byte[keyLen];
     byte[] xordBytes;
-    
+    System.out.println("Decoding \n" + encodedString + "\nfor a key range of " + keyRange);
     // Evaluates all possible keys in the key range
     for (int ix = 0; ix < keyRange; ix++) {
       key = ByteBuffer.allocate(keyLen).put((byte) ix).array();
-      strKey = new String(key);
       xordBytes = singleKeyXOR(message, key);
       xordString = byteToChars(xordBytes);
       grade = evaluator(xordString);
+      System.out.println(
+              "for key: " + ix + ", final string was: " + xordString + ", grade: " + grade);
+      if (ix == 120) {
+        Letter[] freq = freqList(xordString);
+        System.out.println("avg wrd len: " + avgWordLen(xordString));
+        for (Letter l : freq) {
+          System.out.println(l.name + " - " + l.frequency);
+        }
+      }
       evaluatedKeys.add(ix);
       ratings.add(grade);
     }
