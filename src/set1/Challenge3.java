@@ -188,6 +188,9 @@ class mtpDecoder {
       evaluatedKeys.add(ix);
       ratings.add(grade);
     }
+    
+    
+    
     // Bubble sorting, cos I ain't got time for this shit.
     Integer tempKey;
     Double tempGrade;
