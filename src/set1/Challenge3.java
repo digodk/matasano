@@ -27,7 +27,7 @@ public class Challenge3 {
 }
 
 class mtpDecoder {
-  // Auxiliary class for listing letter frequencies
+  // Nested class for listing letter frequencies
   class Letter {
     String name;
     double frequency;
@@ -42,6 +42,55 @@ class mtpDecoder {
     void count() {
       counter++;
     }
+  }
+
+  // Nested class for better key handling
+  class Key {
+    private byte[] keyBytes;
+    private double grade = 0;
+
+    Key(String keyStr) {
+      keyBytes = keyStr.getBytes();
+    }
+
+    Key(byte[] keyBytes) {
+      this.keyBytes = keyBytes;
+    }
+
+    Key(int keyInt, int keyLen) {
+      ByteBuffer bb = ByteBuffer.allocate(keyLen);
+      bb.put((byte) keyInt);
+      keyBytes = bb.array();
+    }
+
+    public int getInt() {
+      return ByteBuffer.wrap(keyBytes).getInt();
+    }
+
+    public double getGrade() {
+      return grade;
+    }
+
+    public void setGrade(double grade) {
+      this.grade = grade;
+    }
+
+    public byte[] getBytes() {
+      return keyBytes;
+    }
+
+    public String getHex() {
+      return Integer.toHexString(getInt());
+    }
+
+    public String getString() {
+      return new String(keyBytes);
+    }
+
+    public int getKeyLen() {
+      return keyBytes.length;
+    }
+
   }
 
   String chars = "etaoinshrdlcumwfgypbvkjxqz";
@@ -156,24 +205,25 @@ class mtpDecoder {
       rating -= (Math.abs(frequencies[ix].frequency - stdCharsFrequencies[ix].frequency)
               / stdCharsFrequencies[ix].frequency) * 100 / stdCharsFrequencies.length;
     }
-    rating *= (1 - Math.abs(stdWrdLen - avgLen) / stdWrdLen);
+    // rating *= (1 - Math.abs(stdWrdLen - avgLen) / stdWrdLen);
     return rating;
   }
 
   void decodeHex(String encodedString, int keyLen) {
     ArrayList<Integer> evaluatedKeys = new ArrayList<>();
     ArrayList<Double> ratings = new ArrayList<>();
+    ArrayList<Key> keys = new ArrayList<>();
+    Key key;
     double grade = 0;
     int keyRange = (int) Math.pow(2, 8 * keyLen);
     String xordString;
     byte[] message = hexStringToByteArray(encodedString);
-    byte[] key = new byte[keyLen];
     byte[] xordBytes;
     System.out.println("Decoding \n" + encodedString + "\nfor a key range of " + keyRange);
     // Evaluates all possible keys in the key range
     for (int ix = 0; ix < keyRange; ix++) {
-      key = ByteBuffer.allocate(keyLen).put((byte) ix).array();
-      xordBytes = singleKeyXOR(message, key);
+      key = new Key(ix, keyLen);
+      xordBytes = singleKeyXOR(message, key.getBytes());
       xordString = byteToChars(xordBytes);
       grade = evaluator(xordString);
       System.out.println(
@@ -185,12 +235,13 @@ class mtpDecoder {
           System.out.println(l.name + " - " + l.frequency);
         }
       }
+      key.setGrade(grade);
+      keys.add(key);
       evaluatedKeys.add(ix);
       ratings.add(grade);
     }
-    
-    
-    
+    // Lambda sorting by grade value
+    keys.sort((k1, k2) -> k1.getGrade() > k2.getGrade() ? 1 : 0);
     // Bubble sorting, cos I ain't got time for this shit.
     Integer tempKey;
     Double tempGrade;
@@ -215,8 +266,10 @@ class mtpDecoder {
       }
       pos++;
     }
+    key = keys.get(0);
     String result = "Most likely key is: " + Integer.toHexString(evaluatedKeys.get(0));
-    result += "\nMost likely decrypted message is: " + new String(singleKeyXOR(message, key));
+    result += "\nMost likely decrypted message is: "
+            + new String(singleKeyXOR(message, key.getBytes()));
     System.out.println(result);
   }
 
